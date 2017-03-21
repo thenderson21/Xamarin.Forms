@@ -72,7 +72,7 @@ namespace Xamarin.Forms.Platform.Android
 			if (previous != null && Equals(previous.Source, Element.Source))
 				return;
 
-			((IImageController)Element).SetIsLoading(true);
+			Element.SetIsLoading(true);
 
 			var formsImageView = Control as FormsImageView;
 			formsImageView?.SkipInvalidate();
@@ -113,7 +113,7 @@ namespace Xamarin.Forms.Platform.Android
 
 				bitmap?.Dispose();
 
-				((IImageController)Element).SetIsLoading(false);
+				Element.SetIsLoading(false);
 				((IVisualElementController)Element).NativeSizeChanged();
 			}
 		}

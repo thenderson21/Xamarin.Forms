@@ -24,11 +24,6 @@ namespace Xamarin.Forms.Platform.iOS
 			Scrolled += HandleScrolled;
 		}
 
-		protected IScrollViewController Controller
-		{
-			get { return (IScrollViewController)Element; }
-		}
-
 		ScrollView ScrollView
 		{
 			get { return Element as ScrollView; }
@@ -57,13 +52,13 @@ namespace Xamarin.Forms.Platform.iOS
 			if (oldElement != null)
 			{
 				oldElement.PropertyChanged -= HandlePropertyChanged;
-				((IScrollViewController)oldElement).ScrollToRequested -= OnScrollToRequested;
+				((ScrollView)oldElement).ScrollToRequested -= OnScrollToRequested;
 			}
 
 			if (element != null)
 			{
 				element.PropertyChanged += HandlePropertyChanged;
-				((IScrollViewController)element).ScrollToRequested += OnScrollToRequested;
+				((ScrollView)element).ScrollToRequested += OnScrollToRequested;
 				if (_packager == null)
 				{
 					DelaysContentTouches = true;
@@ -165,7 +160,7 @@ namespace Xamarin.Forms.Platform.iOS
 
 		void HandlePropertyChanged(object sender, PropertyChangedEventArgs e)
 		{
-			if (e.PropertyName == ScrollView.ContentSizeProperty.PropertyName)
+			if (e.PropertyName == Xamarin.Forms.ScrollView.ContentSizeProperty.PropertyName)
 				UpdateContentSize();
 			else if (e.PropertyName == VisualElement.BackgroundColorProperty.PropertyName)
 				UpdateBackgroundColor();
@@ -173,7 +168,7 @@ namespace Xamarin.Forms.Platform.iOS
 
 		void HandleScrollAnimationEnded(object sender, EventArgs e)
 		{
-			Controller.SendScrollFinished();
+			ScrollView.SendScrollFinished();
 		}
 
 		void HandleScrolled(object sender, EventArgs e)
@@ -198,7 +193,7 @@ namespace Xamarin.Forms.Platform.iOS
 				SetContentOffset(new PointF((nfloat)e.ScrollX, (nfloat)e.ScrollY), e.ShouldAnimate);
 			else
 			{
-				var positionOnScroll = Controller.GetScrollPositionForElement(e.Element as VisualElement, e.Position);
+				var positionOnScroll = ScrollView.GetScrollPositionForElement(e.Element as VisualElement, e.Position);
 
 				positionOnScroll.X = positionOnScroll.X.Clamp(0, ContentSize.Width - Bounds.Size.Width);
 				positionOnScroll.Y = positionOnScroll.Y.Clamp(0, ContentSize.Height - Bounds.Size.Height);
@@ -217,7 +212,7 @@ namespace Xamarin.Forms.Platform.iOS
 				}
 			}
 			if (!e.ShouldAnimate)
-				Controller.SendScrollFinished();
+				ScrollView.SendScrollFinished();
 		}
 
 		void UpdateBackgroundColor()
@@ -235,7 +230,7 @@ namespace Xamarin.Forms.Platform.iOS
 		void UpdateScrollPosition()
 		{
 			if (ScrollView != null)
-				Controller.SetScrolledPosition(ContentOffset.X, ContentOffset.Y);
+				ScrollView.SetScrolledPosition(ContentOffset.X, ContentOffset.Y);
 		}
 
 		void IEffectControlProvider.RegisterEffect(Effect effect)
