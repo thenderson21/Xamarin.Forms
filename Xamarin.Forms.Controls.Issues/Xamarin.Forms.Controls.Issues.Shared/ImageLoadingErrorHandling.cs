@@ -65,7 +65,10 @@ namespace Xamarin.Forms.Controls
 		{
 			var button = new Button { Text = "Test" };
 
-			button.Clicked += (sender, args) => imageLoadAction();
+			button.Clicked += (sender, args) =>
+			{
+				imageLoadAction();
+			};
 
 			var titleLabel = new Label
 			{

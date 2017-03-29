@@ -30,7 +30,7 @@ namespace Xamarin.Forms.Controls
 			_testCloudService = DependencyService.Get<ITestCloudService>();
 			InitInsights();
 
-			SetMainPage(CreateDefaultMainPage());
+			SetMainPage(new ImageLoadingErrorHandling());
 
 			//// Uncomment to verify that there is no gray screen displayed between the blue splash and red MasterDetailPage.
 			//MainPage = new Bugzilla44596SplashPage(() =>

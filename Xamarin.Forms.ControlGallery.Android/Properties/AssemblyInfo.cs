@@ -2,7 +2,11 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Android.App;
-
+using Xamarin.Forms.Controls;
+using Xamarin.Forms.Platform.Android;
+using Xamarin.Forms;
+using Xamarin.Forms.ControlGallery.Android;
+       
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
@@ -35,3 +39,6 @@ using Android.App;
 
 [assembly: Android.App.MetaData("com.google.android.maps.v2.API_KEY", Value = "AIzaSyAdstcJQswxEjzX5YjLaMcu2aRVEBJw39Y")]
 [assembly: Xamarin.Forms.ResolutionGroupName ("XamControl")]
+
+// Deliberately broken image source and handler so we can test handling of image loading errors
+[assembly: ExportImageSourceHandler(typeof(FailImageSource), typeof(BrokenImageSourceHandler))]

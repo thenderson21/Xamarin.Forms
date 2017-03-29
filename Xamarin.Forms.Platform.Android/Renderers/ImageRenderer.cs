@@ -6,6 +6,7 @@ using Android.Graphics;
 using Android.Views;
 using AImageView = Android.Widget.ImageView;
 using Xamarin.Forms.Internals;
+using System.Threading;
 
 namespace Xamarin.Forms.Platform.Android
 {
@@ -34,7 +35,7 @@ namespace Xamarin.Forms.Platform.Android
 			return new FormsImageView(Context);
 		}
 
-		protected override void OnElementChanged(ElementChangedEventArgs<Image> e)
+		protected async override void OnElementChanged(ElementChangedEventArgs<Image> e)
 		{
 			base.OnElementChanged(e);
 
@@ -46,16 +47,17 @@ namespace Xamarin.Forms.Platform.Android
 
 			_motionEventHelper.UpdateElement(e.NewElement);
 
-			UpdateBitmap(e.OldElement);
+			await TryUpdateBitmap(e.OldElement);
+
 			UpdateAspect();
 		}
 
-		protected override void OnElementPropertyChanged(object sender, PropertyChangedEventArgs e)
+		protected async override void OnElementPropertyChanged(object sender, PropertyChangedEventArgs e)
 		{
 			base.OnElementPropertyChanged(sender, e);
 
 			if (e.PropertyName == Image.SourceProperty.PropertyName)
-				UpdateBitmap();
+				await TryUpdateBitmap();
 			else if (e.PropertyName == Image.AspectProperty.PropertyName)
 				UpdateAspect();
 		}
@@ -66,7 +68,22 @@ namespace Xamarin.Forms.Platform.Android
 			Control.SetScaleType(type);
 		}
 
-		async void UpdateBitmap(Image previous = null)
+		// TODO hartez Write up an example of a custom renderer with alternate handling of these errors
+		// TODO Set up a TryUpdateBitmap equivalent for Windows, iOS
+
+		protected virtual async Task TryUpdateBitmap(Image previous = null)
+		{
+			try
+			{
+				await UpdateBitmap(previous);
+			}
+			catch(Exception ex)
+			{
+				Log.Warning("Xamarin.Forms.Platform.Android.ImageRenderer", "Error updating bitmap: {0}", ex);
+			}
+		}
+
+		protected async Task UpdateBitmap(Image previous = null)
 		{
 			if (Device.IsInvokeRequired)
 				throw new InvalidOperationException("Image Bitmap must not be updated from background thread");
@@ -89,14 +106,21 @@ namespace Xamarin.Forms.Platform.Android
 			{
 				try
 				{
+					// TODO hartez Some of the test cases don't throw an exception, they just return null
+					// This is because the BitmapFactory methods return null if they can't decode.
+
 					bitmap = await handler.LoadImageAsync(source, Context);
 				}
 				catch (TaskCanceledException)
 				{
 				}
-				catch (IOException ex)
+
+				// TODO verify that when this is down here, you don't get double exceptions
+				if(bitmap == null)
 				{
-					Log.Warning("Xamarin.Forms.Platform.Android.ImageRenderer", "Error updating bitmap: {0}", ex);
+					// Could not decode the bitmap, throw an exception to indicate 
+					// the data wasn't decodable
+					throw new InvalidDataException($"Could not load Bitmap from source {source}");
 				}
 			}
 
