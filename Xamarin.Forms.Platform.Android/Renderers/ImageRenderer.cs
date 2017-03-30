@@ -68,11 +68,12 @@ namespace Xamarin.Forms.Platform.Android
 		}
 
 		// TODO hartez Write up an example of a custom renderer with alternate handling of these errors
-		// TODO hartez Set up a TryUpdateBitmap equivalent for Windows
 
 		protected virtual async Task TryUpdateBitmap(Image previous = null)
 		{
-			// TODO hartez 2017/03/29 18:00:25 add blurb here	
+			// By default we'll just catch and log any exceptions thrown by UpdateBitmap so they don't bring down
+			// the application; a custom renderer can override this method and handle exceptions from
+			// UpdateBitmap differently if it wants to
 
 			try
 			{
@@ -80,7 +81,7 @@ namespace Xamarin.Forms.Platform.Android
 			}
 			catch (Exception ex)
 			{
-				Log.Warning("Xamarin.Forms.Platform.Android.ImageRenderer", "Error updating bitmap: {0}", ex);
+				Log.Warning(nameof(ImageRenderer), "Error loading image: {0}", ex);
 			}
 			finally
 			{
@@ -107,18 +108,11 @@ namespace Xamarin.Forms.Platform.Android
 			Bitmap bitmap = null;
 			IImageSourceHandler handler;
 
-			if (source != null && (handler = Internals.Registrar.Registered.GetHandler<IImageSourceHandler>(source.GetType())) != null)
+			if (source != null && (handler = Registrar.Registered.GetHandler<IImageSourceHandler>(source.GetType())) != null)
 			{
 				try
 				{
 					bitmap = await handler.LoadImageAsync(source, Context);
-
-					if (bitmap == null)
-					{
-						// If we were trying to load an image which doesn't exist (either locally or remotely), we'll get back a null Bitmap
-						// If the image data is found but is invalid, we'll also get back a null Bitmap. So this is as helpful as we can be.
-						Log.Warning(nameof(ImageRenderer), "Could not find image or image file is invalid: {0}", source);
-					}
 				}
 				catch (TaskCanceledException)
 				{

@@ -133,21 +133,6 @@ namespace Xamarin.Forms.Platform.iOS
 				try
 				{
 					uiimage = await handler.LoadImageAsync(source, scale: (float)UIScreen.MainScreen.Scale);
-
-					if (uiimage == null)
-					{
-						if (handler is FileImageSourceHandler)
-						{
-							// If we were trying to load an image which doesn't exist in storage or in the app bundle,
-							// we'll get back a null UIImage
-							Log.Warning(nameof(ImageRenderer), "Could not find image: {0}", source);
-						}
-						else if (handler is ImageLoaderSourceHandler)
-						{
-							// If we're trying to load an image from a URI and the image data is invalid, we'll get back a null UIImage
-							Log.Warning(nameof(ImageRenderer), "Could not load image: {0}", source);
-						}
-					}
 				}
 				catch (OperationCanceledException)
 				{
@@ -188,6 +173,12 @@ namespace Xamarin.Forms.Platform.iOS
 			var file = filesource?.File;
 			if (!string.IsNullOrEmpty(file))
 				image = File.Exists(file) ? new UIImage(file) : UIImage.FromBundle(file);
+
+			if (image == null)
+			{
+				Log.Warning(nameof(FileImageSourceHandler), "Could not find image: {0}", imagesource);
+			}
+
 			return Task.FromResult(image);
 		}
 	}
@@ -198,7 +189,7 @@ namespace Xamarin.Forms.Platform.iOS
 		{
 			UIImage image = null;
 			var streamsource = imagesource as StreamImageSource;
-			if (streamsource != null && streamsource.Stream != null)
+			if (streamsource?.Stream != null)
 			{
 				using (var streamImage = await ((IStreamImageSource)streamsource).GetStreamAsync(cancelationToken).ConfigureAwait(false))
 				{
@@ -206,6 +197,12 @@ namespace Xamarin.Forms.Platform.iOS
 						image = UIImage.LoadFromData(NSData.FromStream(streamImage), scale);
 				}
 			}
+
+			if (image == null)
+			{
+				Log.Warning(nameof(StreamImagesourceHandler), "Could not load image: {0}", streamsource);
+			}
+
 			return image;
 		}
 	}
@@ -216,23 +213,20 @@ namespace Xamarin.Forms.Platform.iOS
 		{
 			UIImage image = null;
 			var imageLoader = imagesource as UriImageSource;
-			if (imageLoader != null && imageLoader.Uri != null)
+			if (imageLoader?.Uri != null)
 			{
 				using (var streamImage = await imageLoader.GetStreamAsync(cancelationToken).ConfigureAwait(false))
 				{
 					if (streamImage != null)
 						image = UIImage.LoadFromData(NSData.FromStream(streamImage), scale);
-
-					// TODO hartez 2017/03/29 11:45:57 For a valid URI with an invalid image, we get back null and no exception	
-					// Probably can't just start throwing exceptions from here, other things might be relying on that fact that these return null
-					// Best we can do is get ImageRenderer consistent
-					// The fact that we log more than one error to debug for the test isn't really a big deal, the whole idea was to at least give the
-					// user some idea of what was going wrong.
-					// Need to make the test more uitest friendly anyway
-
-					// TODO hartez 2017/03/29 12:18:19 Better tostring for the image sources	
 				}
 			}
+
+			if (image == null)
+			{
+				Log.Warning(nameof(ImageLoaderSourceHandler), "Could not load image: {0}", imageLoader);
+			}
+
 			return image;
 		}
 	}
