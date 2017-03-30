@@ -1,103 +1,182 @@
 ﻿using System;
+using System.Globalization;
 using Xamarin.Forms.CustomAttributes;
 using Xamarin.Forms.Internals;
 
-namespace Xamarin.Forms.Controls
+#if UITEST
+using Xamarin.UITest;
+using NUnit.Framework;
+#endif
+
+namespace Xamarin.Forms.Controls.Issues
 {
 	[Preserve(AllMembers = true)]
-	[Issue(IssueTracker.None, 0, "Image Loading Error Handling", PlatformAffected.WinRT | PlatformAffected.UWP)]
-	public class ImageLoadingErrorHandling : TestContentPage
+	[Issue(IssueTracker.Bugzilla, 51173, "ImageRenderer, async void SetImage - Cannot catch exceptions", PlatformAffected.All)]
+	public class Bugzilla51173 : TestContentPage
 	{
+#if UITEST
+		[Test]
+		public void Bugzilla51173_NonexistentUri()
+		{
+			RunningApp.WaitForElement(q => q.Marked(UriDoesNotExist));
+
+			RunningApp.Tap(UriDoesNotExist);
+			RunningApp.WaitForElement(q => q.Marked(ErrorLogged));
+			RunningApp.WaitForElement(q => q.Marked(NotLoading));
+		}
+
+		[Test]
+		public void Bugzilla51173_SourceThrowsException()
+		{
+			RunningApp.WaitForElement(q => q.Marked(SourceThrows));
+			
+			RunningApp.Tap(SourceThrows);
+			RunningApp.WaitForElement(q => q.Marked(ErrorLogged));
+			RunningApp.WaitForElement(q => q.Marked(NotLoading));
+		}
+
+		[Test]
+		public void Bugzilla51173_RealUriWithInvalidImageData()
+		{
+			RunningApp.WaitForElement(q => q.Marked(RealUriInvalidImage));
+
+			RunningApp.Tap(RealUriInvalidImage);
+			RunningApp.WaitForElement(q => q.Marked(ErrorLogged));
+			RunningApp.WaitForElement(q => q.Marked(NotLoading));
+		}
+
+		[Test]
+		public void Bugzilla51173_NonexistentImage()
+		{
+			RunningApp.WaitForElement(q => q.Marked(ImageDoesNotExist));
+
+			RunningApp.Tap(ImageDoesNotExist);
+			RunningApp.WaitForElement(q => q.Marked(ErrorLogged));
+			RunningApp.WaitForElement(q => q.Marked(NotLoading));
+		}
+
+		[Test]
+		public void Bugzilla51173_InvalidImage()
+		{
+			RunningApp.WaitForElement(q => q.Marked(ImageIsInvalid));
+
+			RunningApp.Tap(ImageIsInvalid);
+			RunningApp.WaitForElement(q => q.Marked(ErrorLogged));
+			RunningApp.WaitForElement(q => q.Marked(NotLoading));
+		}
+
+		[Test]
+		public void Bugzilla51173_ValidImage()
+		{
+			RunningApp.WaitForElement(q => q.Marked(ValidImage));
+			RunningApp.Tap(ValidImage);
+			RunningApp.WaitForElement(q => q.Marked(NotLoading));
+		}
+#endif
+
+		const string ValidImage = "Valid Image";
+		const string ImageDoesNotExist = "Non-existent Image File";
+		const string ImageIsInvalid = "Invalid Image File (bad data)";
+		const string UriDoesNotExist = "Non-existent URI";
+		const string SourceThrows = "Source Throws Exception";
+		const string RealUriInvalidImage = "Valid URI with invalid image file";
+		const string ErrorLogged = "Error logged";
+
+		const string Loading = "Loading";
+		const string NotLoading = "Not Loading";
+
+		Label _results;
+		Image _image;
+
+		class LoadingConverter : IValueConverter
+		{
+			public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+			{
+				if ((bool)value)
+				{
+					return Loading;
+				}
+
+				return NotLoading;
+			}
+
+			public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+			{
+				throw new NotImplementedException();
+			}
+		}
+
 		protected override void Init()
 		{
+			_results = new Label { Margin = 20, FontAttributes = FontAttributes.Bold, BackgroundColor = Color.Silver, HorizontalTextAlignment = TextAlignment.Center};
+
+			var errorMessage = new Label();
+
 			Log.Listeners.Add(
-				new DelegateLogListener((c, m) => Device.BeginInvokeOnMainThread(() => DisplayAlert(c, m, "Cool, Thanks"))));
+				new DelegateLogListener((c, m) => Device.BeginInvokeOnMainThread(() =>
+				{
+					_results.Text = ErrorLogged;
+					errorMessage.Text = m;
+				})));
+			
+			var instructions = new Label
+			{
+				Text =
+					"Pressing the 'Valid Image' button should display an image of a coffee cup. Every other button should cause the messager 'Error logged' to appear at the top of the page."
+			};
 
-			var image = new Image() {BackgroundColor = Color.White};
+			_image = new Image { BackgroundColor = Color.White };
 
-			Grid legit = CreateTest(() => image.Source = ImageSource.FromFile("coffee.png"),
-				"Valid Image",
-				"Clicking this button should load an image at the top of the page.",
-				Color.Silver);
+			var loadingState = new Label();
+			loadingState.SetBinding(Label.TextProperty, new Binding(Image.IsLoadingProperty.PropertyName, BindingMode.Default, new LoadingConverter()));
+			loadingState.BindingContext = _image;
 
-			Grid invalidImageFileName = CreateTest(() => image.Source = ImageSource.FromFile("fake.png"),
-				"Non-existent Image File",
-				"Clicking this button should display an alert dialog with an error that the image failed to load.");
+			var legit = CreateTest(() => _image.Source = ImageSource.FromFile("coffee.png"), ValidImage);
 
-			Grid invalidImageFile = CreateTest(() => image.Source = ImageSource.FromFile("invalidimage.jpg"),
-				"Invalid Image File (bad data)",
-				"Clicking this button should display an alert dialog with an error that the image failed to load.",
-				Color.Silver);
+			var invalidImageFileName = CreateTest(() => _image.Source = ImageSource.FromFile("fake.png"), ImageDoesNotExist); 
 
-			Grid fakeUri = CreateTest(() => image.Source = ImageSource.FromUri(new Uri("http://not.real")),
-				"Non-existent URI",
-				(Device.RuntimePlatform == Device.UWP || Device.RuntimePlatform == Device.WinRT) && Device.Idiom == TargetIdiom.Phone
-				? "Clicking this button should display an alert dialog. The error message should include the text 'NotFound'."
-				: "Clicking this button should display an alert dialog. The error message should include the text 'the server name or address could not be resolved'.");
+			var invalidImageFile = CreateTest(() => _image.Source = ImageSource.FromFile("invalidimage.jpg"), ImageIsInvalid);
+
+			var fakeUri = CreateTest(() => _image.Source = ImageSource.FromUri(new Uri("http://not.real")), UriDoesNotExist);
 
 			// This used to crash the app with an uncatchable error; need to make sure it's not still doing that
-			Grid crashImage = CreateTest(() => image.Source = new FailImageSource(),
-				"Source Throws Exception",
-				"Clicking this button should display an alert dialog. The error messages hould include the test 'error updating image source'.",
-				Color.Silver);
+			var crashImage = CreateTest(() => _image.Source = new FailImageSource(), SourceThrows);
 
-			Grid uriInvalidImageData =
-				CreateTest(() => image.Source = ImageSource.FromUri(new Uri("https://gist.githubusercontent.com/hartez/a2dda6b5c78852bcf4832af18f21a023/raw/39f4cd2e9fe8514694ac7fa0943017eb9308853d/corrupt.jpg")),
-					"Valid URI with invalid image file",
-					"Clicking this button should display an alert dialog. The error message should include the text 'UriImageSourceHandler could not load https://gist.githubusercontent.com/hartez/a2dda6b5c78852bcf4832af18f21a023/raw/39f4cd2e9fe8514694ac7fa0943017eb9308853d/corrupt.jpg'");
+			var uriInvalidImageData =
+				CreateTest(() => _image.Source = ImageSource.FromUri(new Uri("https://gist.githubusercontent.com/hartez/a2dda6b5c78852bcf4832af18f21a023/raw/39f4cd2e9fe8514694ac7fa0943017eb9308853d/corrupt.jpg")),
+					RealUriInvalidImage);
 
 			Content = new StackLayout
 			{
+				Margin = new Thickness(5, 40, 5, 0),
 				Children =
 				{
-					image,
+					_image,
+					instructions,
 					legit,
 					invalidImageFileName,
 					invalidImageFile,
 					fakeUri,
 					crashImage,
-					uriInvalidImageData
+					uriInvalidImageData,
+					_results,
+					loadingState,
+					errorMessage
 				}
 			};
 		}
 
-		static Grid CreateTest(Action imageLoadAction, string title, string instructions, Color? backgroundColor = null)
+		Button CreateTest(Action imageLoadAction, string title)
 		{
-			var button = new Button { Text = "Test" };
+			var button = new Button { Text = title };
 
 			button.Clicked += (sender, args) =>
 			{
+				_results.Text = "";
 				imageLoadAction();
 			};
 
-			var titleLabel = new Label
-			{
-				Text = title,
-				FontAttributes = FontAttributes.Bold
-			};
-
-			var label = new Label
-			{
-				Text = instructions
-			};
-
-			var grid = new Grid
-			{
-				ColumnDefinitions =
-					new ColumnDefinitionCollection { new ColumnDefinition(), new ColumnDefinition(), new ColumnDefinition() },
-				RowDefinitions = new RowDefinitionCollection { new RowDefinition { Height = 80 } }
-			};
-
-			if (backgroundColor.HasValue)
-			{
-				grid.BackgroundColor = backgroundColor.Value;
-			}
-
-			grid.AddChild(titleLabel, 0, 0);
-			grid.AddChild(label, 1, 0);
-			grid.AddChild(button, 2, 0);
-
-			return grid;
+			return button;
 		}
 	}
 }

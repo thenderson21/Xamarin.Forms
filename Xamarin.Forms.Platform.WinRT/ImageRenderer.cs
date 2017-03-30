@@ -55,7 +55,7 @@ namespace Xamarin.Forms.Platform.WinRT
 					SetNativeControl(image);
 				}
 
-				await UpdateSource();
+				await TryUpdateSource();
 				UpdateAspect();
 			}
 		}
@@ -65,7 +65,7 @@ namespace Xamarin.Forms.Platform.WinRT
 			base.OnElementPropertyChanged(sender, e);
 
 			if (e.PropertyName == Image.SourceProperty.PropertyName)
-				await UpdateSource();
+				await TryUpdateSource();
 			else if (e.PropertyName == Image.AspectProperty.PropertyName)
 				UpdateAspect();
 		}
@@ -94,7 +94,7 @@ namespace Xamarin.Forms.Platform.WinRT
 			((IImageController)Element)?.SetIsLoading(false);
 		}
 
-		void OnImageFailed(object sender, ExceptionRoutedEventArgs exceptionRoutedEventArgs)
+		protected virtual void OnImageFailed(object sender, ExceptionRoutedEventArgs exceptionRoutedEventArgs)
 		{
 			Log.Warning("Image Loading", $"Image failed to load: {exceptionRoutedEventArgs.ErrorMessage}" );
 			((IImageController)Element)?.SetIsLoading(false);
@@ -120,6 +120,26 @@ namespace Xamarin.Forms.Platform.WinRT
 			}
 		}
 
+		protected virtual async Task TryUpdateSource()
+		{
+			// By default we'll just catch and log any exceptions thrown by UpdateSource so we don't bring down
+			// the application; a custom renderer can override this method and handle exceptions from
+			// UpdateSource differently if it wants to
+
+			try
+			{
+				await UpdateSource().ConfigureAwait(false);
+			}
+			catch (Exception ex)
+			{
+				Log.Warning(nameof(ImageRenderer), "Error loading image: {0}", ex);
+			}
+			finally
+			{
+				((IImageController)Element).SetIsLoading(false);
+			}
+		}
+
 		async Task UpdateSource()
 		{
 			((IImageController)Element).SetIsLoading(true);
@@ -137,10 +157,6 @@ namespace Xamarin.Forms.Platform.WinRT
 				catch (OperationCanceledException)
 				{
 					imagesource = null;
-				}
-				catch (Exception ex)
-				{
-					Log.Warning("Image Loading", $"Error updating image source: {ex}");
 				}
 
 				// In the time it takes to await the imagesource, some zippy little app

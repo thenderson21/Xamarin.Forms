@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Foundation;
 using UIKit;
+using Xamarin.Forms.Internals;
 using RectangleF = CoreGraphics.CGRect;
 
 namespace Xamarin.Forms.Platform.iOS
@@ -30,8 +31,6 @@ namespace Xamarin.Forms.Platform.iOS
 	{
 		bool _isDisposed;
 
-		IElementController ElementController => Element as IElementController;
-
 		protected override void Dispose(bool disposing)
 		{
 			if (_isDisposed)
@@ -52,7 +51,7 @@ namespace Xamarin.Forms.Platform.iOS
 			base.Dispose(disposing);
 		}
 
-		protected override void OnElementChanged(ElementChangedEventArgs<Image> e)
+		protected override async void OnElementChanged(ElementChangedEventArgs<Image> e)
 		{
 			if (Control == null)
 			{
@@ -65,18 +64,18 @@ namespace Xamarin.Forms.Platform.iOS
 			if (e.NewElement != null)
 			{
 				SetAspect();
-				SetImage(e.OldElement);
+				await TrySetImage(e.OldElement);
 				SetOpacity();
 			}
 
 			base.OnElementChanged(e);
 		}
 
-		protected override void OnElementPropertyChanged(object sender, PropertyChangedEventArgs e)
+		protected override async void OnElementPropertyChanged(object sender, PropertyChangedEventArgs e)
 		{
 			base.OnElementPropertyChanged(sender, e);
 			if (e.PropertyName == Image.SourceProperty.PropertyName)
-				SetImage();
+				await TrySetImage();
 			else if (e.PropertyName == Image.IsOpaqueProperty.PropertyName)
 				SetOpacity();
 			else if (e.PropertyName == Image.AspectProperty.PropertyName)
@@ -88,7 +87,27 @@ namespace Xamarin.Forms.Platform.iOS
 			Control.ContentMode = Element.Aspect.ToUIViewContentMode();
 		}
 
-		async void SetImage(Image oldElement = null)
+		protected virtual async Task TrySetImage(Image previous = null)
+		{
+			// By default we'll just catch and log any exceptions thrown by SetImage so they don't bring down
+			// the application; a custom renderer can override this method and handle exceptions from
+			// SetImage differently if it wants to
+
+			try
+			{
+				await SetImage(previous).ConfigureAwait(false);
+			}
+			catch (Exception ex)
+			{
+				Log.Warning(nameof(ImageRenderer), "Error loading image: {0}", ex);
+			}
+			finally
+			{
+				((IImageController)Element).SetIsLoading(false);
+			}
+		}
+
+		async Task SetImage(Image oldElement = null)
 		{
 			var source = Element.Source;
 
@@ -114,6 +133,21 @@ namespace Xamarin.Forms.Platform.iOS
 				try
 				{
 					uiimage = await handler.LoadImageAsync(source, scale: (float)UIScreen.MainScreen.Scale);
+
+					if (uiimage == null)
+					{
+						if (handler is FileImageSourceHandler)
+						{
+							// If we were trying to load an image which doesn't exist in storage or in the app bundle,
+							// we'll get back a null UIImage
+							Log.Warning(nameof(ImageRenderer), "Could not find image: {0}", source);
+						}
+						else if (handler is ImageLoaderSourceHandler)
+						{
+							// If we're trying to load an image from a URI and the image data is invalid, we'll get back a null UIImage
+							Log.Warning(nameof(ImageRenderer), "Could not load image: {0}", source);
+						}
+					}
 				}
 				catch (OperationCanceledException)
 				{
@@ -151,12 +185,9 @@ namespace Xamarin.Forms.Platform.iOS
 		{
 			UIImage image = null;
 			var filesource = imagesource as FileImageSource;
-			if (filesource != null)
-			{
-				var file = filesource.File;
-				if (!string.IsNullOrEmpty(file))
-					image = File.Exists(file) ? new UIImage(file) : UIImage.FromBundle(file);
-			}
+			var file = filesource?.File;
+			if (!string.IsNullOrEmpty(file))
+				image = File.Exists(file) ? new UIImage(file) : UIImage.FromBundle(file);
 			return Task.FromResult(image);
 		}
 	}
@@ -191,6 +222,15 @@ namespace Xamarin.Forms.Platform.iOS
 				{
 					if (streamImage != null)
 						image = UIImage.LoadFromData(NSData.FromStream(streamImage), scale);
+
+					// TODO hartez 2017/03/29 11:45:57 For a valid URI with an invalid image, we get back null and no exception	
+					// Probably can't just start throwing exceptions from here, other things might be relying on that fact that these return null
+					// Best we can do is get ImageRenderer consistent
+					// The fact that we log more than one error to debug for the test isn't really a big deal, the whole idea was to at least give the
+					// user some idea of what was going wrong.
+					// Need to make the test more uitest friendly anyway
+
+					// TODO hartez 2017/03/29 12:18:19 Better tostring for the image sources	
 				}
 			}
 			return image;

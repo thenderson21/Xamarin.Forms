@@ -6,7 +6,6 @@ using Android.Graphics;
 using Android.Views;
 using AImageView = Android.Widget.ImageView;
 using Xamarin.Forms.Internals;
-using System.Threading;
 
 namespace Xamarin.Forms.Platform.Android
 {
@@ -35,7 +34,7 @@ namespace Xamarin.Forms.Platform.Android
 			return new FormsImageView(Context);
 		}
 
-		protected async override void OnElementChanged(ElementChangedEventArgs<Image> e)
+		protected override async void OnElementChanged(ElementChangedEventArgs<Image> e)
 		{
 			base.OnElementChanged(e);
 
@@ -52,7 +51,7 @@ namespace Xamarin.Forms.Platform.Android
 			UpdateAspect();
 		}
 
-		protected async override void OnElementPropertyChanged(object sender, PropertyChangedEventArgs e)
+		protected override async void OnElementPropertyChanged(object sender, PropertyChangedEventArgs e)
 		{
 			base.OnElementPropertyChanged(sender, e);
 
@@ -69,17 +68,23 @@ namespace Xamarin.Forms.Platform.Android
 		}
 
 		// TODO hartez Write up an example of a custom renderer with alternate handling of these errors
-		// TODO Set up a TryUpdateBitmap equivalent for Windows, iOS
+		// TODO hartez Set up a TryUpdateBitmap equivalent for Windows
 
 		protected virtual async Task TryUpdateBitmap(Image previous = null)
 		{
+			// TODO hartez 2017/03/29 18:00:25 add blurb here	
+
 			try
 			{
 				await UpdateBitmap(previous);
 			}
-			catch(Exception ex)
+			catch (Exception ex)
 			{
 				Log.Warning("Xamarin.Forms.Platform.Android.ImageRenderer", "Error updating bitmap: {0}", ex);
+			}
+			finally
+			{
+				((IImageController)Element).SetIsLoading(false);
 			}
 		}
 
@@ -106,21 +111,18 @@ namespace Xamarin.Forms.Platform.Android
 			{
 				try
 				{
-					// TODO hartez Some of the test cases don't throw an exception, they just return null
-					// This is because the BitmapFactory methods return null if they can't decode.
-
 					bitmap = await handler.LoadImageAsync(source, Context);
+
+					if (bitmap == null)
+					{
+						// If we were trying to load an image which doesn't exist (either locally or remotely), we'll get back a null Bitmap
+						// If the image data is found but is invalid, we'll also get back a null Bitmap. So this is as helpful as we can be.
+						Log.Warning(nameof(ImageRenderer), "Could not find image or image file is invalid: {0}", source);
+					}
 				}
 				catch (TaskCanceledException)
 				{
-				}
-
-				// TODO verify that when this is down here, you don't get double exceptions
-				if(bitmap == null)
-				{
-					// Could not decode the bitmap, throw an exception to indicate 
-					// the data wasn't decodable
-					throw new InvalidDataException($"Could not load Bitmap from source {source}");
+					((IImageController)Element).SetIsLoading(false);
 				}
 			}
 
