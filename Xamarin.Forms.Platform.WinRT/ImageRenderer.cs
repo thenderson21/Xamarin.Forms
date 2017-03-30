@@ -140,7 +140,7 @@ namespace Xamarin.Forms.Platform.WinRT
 			}
 		}
 
-		async Task UpdateSource()
+		protected async Task UpdateSource()
 		{
 			((IImageController)Element).SetIsLoading(true);
 

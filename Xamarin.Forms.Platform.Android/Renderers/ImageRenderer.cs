@@ -67,8 +67,6 @@ namespace Xamarin.Forms.Platform.Android
 			Control.SetScaleType(type);
 		}
 
-		// TODO hartez Write up an example of a custom renderer with alternate handling of these errors
-
 		protected virtual async Task TryUpdateBitmap(Image previous = null)
 		{
 			// By default we'll just catch and log any exceptions thrown by UpdateBitmap so they don't bring down

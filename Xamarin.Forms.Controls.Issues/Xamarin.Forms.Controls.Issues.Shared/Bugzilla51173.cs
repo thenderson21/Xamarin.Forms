@@ -15,9 +15,10 @@ namespace Xamarin.Forms.Controls.Issues
 	public class Bugzilla51173 : TestContentPage
 	{
 #if UITEST
-		[Test]
+		[Test(Description = "Attempt to load an image from a URI which does not exist")]
 		public void Bugzilla51173_NonexistentUri()
 		{
+			
 			RunningApp.WaitForElement(q => q.Marked(UriDoesNotExist));
 
 			RunningApp.Tap(UriDoesNotExist);
@@ -25,17 +26,17 @@ namespace Xamarin.Forms.Controls.Issues
 			RunningApp.WaitForElement(q => q.Marked(NotLoading));
 		}
 
-		[Test]
-		public void Bugzilla51173_SourceThrowsException()
+		[Test(Description = "The IImageSourceHandler itself throws an exception")]
+		public void Bugzilla51173_HandlerThrowsException()
 		{
-			RunningApp.WaitForElement(q => q.Marked(SourceThrows));
+			RunningApp.WaitForElement(q => q.Marked(HandlerThrows));
 			
-			RunningApp.Tap(SourceThrows);
+			RunningApp.Tap(HandlerThrows);
 			RunningApp.WaitForElement(q => q.Marked(ErrorLogged));
 			RunningApp.WaitForElement(q => q.Marked(NotLoading));
 		}
 
-		[Test]
+		[Test(Description = "The URI is valid, but the image data is not")]
 		public void Bugzilla51173_RealUriWithInvalidImageData()
 		{
 			RunningApp.WaitForElement(q => q.Marked(RealUriInvalidImage));
@@ -45,7 +46,7 @@ namespace Xamarin.Forms.Controls.Issues
 			RunningApp.WaitForElement(q => q.Marked(NotLoading));
 		}
 
-		[Test]
+		[Test(Description = "Attempt to load a local image which does not exist")]
 		public void Bugzilla51173_NonexistentImage()
 		{
 			RunningApp.WaitForElement(q => q.Marked(ImageDoesNotExist));
@@ -55,7 +56,7 @@ namespace Xamarin.Forms.Controls.Issues
 			RunningApp.WaitForElement(q => q.Marked(NotLoading));
 		}
 
-		[Test]
+		[Test(Description = "Attempt to load a local image which exists, but has corrupt data")]
 		public void Bugzilla51173_InvalidImage()
 		{
 			RunningApp.WaitForElement(q => q.Marked(ImageIsInvalid));
@@ -65,7 +66,7 @@ namespace Xamarin.Forms.Controls.Issues
 			RunningApp.WaitForElement(q => q.Marked(NotLoading));
 		}
 
-		[Test]
+		[Test(Description = "Load a valid image")]
 		public void Bugzilla51173_ValidImage()
 		{
 			RunningApp.WaitForElement(q => q.Marked(ValidImage));
@@ -78,7 +79,7 @@ namespace Xamarin.Forms.Controls.Issues
 		const string ImageDoesNotExist = "Non-existent Image File";
 		const string ImageIsInvalid = "Invalid Image File (bad data)";
 		const string UriDoesNotExist = "Non-existent URI";
-		const string SourceThrows = "Source Throws Exception";
+		const string HandlerThrows = "Source Throws Exception";
 		const string RealUriInvalidImage = "Valid URI with invalid image file";
 		const string ErrorLogged = "Error logged";
 
@@ -139,8 +140,7 @@ namespace Xamarin.Forms.Controls.Issues
 
 			var fakeUri = CreateTest(() => _image.Source = ImageSource.FromUri(new Uri("http://not.real")), UriDoesNotExist);
 
-			// This used to crash the app with an uncatchable error; need to make sure it's not still doing that
-			var crashImage = CreateTest(() => _image.Source = new FailImageSource(), SourceThrows);
+			var crashImage = CreateTest(() => _image.Source = new FailImageSource(), HandlerThrows);
 
 			var uriInvalidImageData =
 				CreateTest(() => _image.Source = ImageSource.FromUri(new Uri("https://gist.githubusercontent.com/hartez/a2dda6b5c78852bcf4832af18f21a023/raw/39f4cd2e9fe8514694ac7fa0943017eb9308853d/corrupt.jpg")),

@@ -107,7 +107,7 @@ namespace Xamarin.Forms.Platform.iOS
 			}
 		}
 
-		async Task SetImage(Image oldElement = null)
+		protected async Task SetImage(Image oldElement = null)
 		{
 			var source = Element.Source;
 
