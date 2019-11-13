@@ -10,6 +10,7 @@ namespace Xamarin.Forms.Controls
 	{
 		public LabelGallery ()
 		{
+			var special = new Label { Text = "& < > \" '" };
 			var normal = new Label { Text = "Normal Label" };
 			var center = new Label { Text = "Center Label" };
 			var right = new Label { Text = "Right Label" };
@@ -35,6 +36,7 @@ namespace Xamarin.Forms.Controls
 			toggleStrike.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => { toggleStrike.TextDecorations ^= TextDecorations.Strikethrough; }) });
 			var toggleBoth = new Label { Text = "Tap to toggle both", TextDecorations = TextDecorations.Strikethrough | TextDecorations.Underline };
 			toggleBoth.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => { toggleBoth.TextDecorations ^= TextDecorations.Strikethrough;
+
 																										toggleBoth.TextDecorations ^= TextDecorations.Underline;
 																								}) });
 			var huge = new Label {
@@ -142,6 +144,7 @@ namespace Xamarin.Forms.Controls
 				Content = new StackLayout {
 					Padding = padding,
 					Children = {
+						special,
 						formatted,
 						normal,
 						center,
