@@ -91,6 +91,9 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="OpenTK" Version="3.0.1" />
+    <PackageReference Include="GtkSharp">
+      <Version>3.22.25.56</Version>
+    </PackageReference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Animations\BaseAnimation.cs" />
@@ -221,22 +224,6 @@
     <None Include="app.config" />
     <Content Include="Libs\GMaps\GMap.NET.Core.dll" />
     <Content Include="Libs\GMaps\GMap.NET.GTK.dll" />
-    <Content Include="Libs\gtk-sharp\gtk-sharp-2.0\atk-sharp.dll" />
-    <Content Include="Libs\gtk-sharp\gtk-sharp-2.0\atk-sharp.pdb" />
-    <Content Include="Libs\gtk-sharp\gtk-sharp-2.0\gdk-sharp.dll" />
-    <Content Include="Libs\gtk-sharp\gtk-sharp-2.0\gdk-sharp.pdb" />
-    <Content Include="Libs\gtk-sharp\gtk-sharp-2.0\glade-sharp.dll" />
-    <Content Include="Libs\gtk-sharp\gtk-sharp-2.0\glade-sharp.pdb" />
-    <Content Include="Libs\gtk-sharp\gtk-sharp-2.0\glib-sharp.dll" />
-    <Content Include="Libs\gtk-sharp\gtk-sharp-2.0\glib-sharp.pdb" />
-    <Content Include="Libs\gtk-sharp\gtk-sharp-2.0\gtk-dotnet.dll" />
-    <Content Include="Libs\gtk-sharp\gtk-sharp-2.0\gtk-dotnet.pdb" />
-    <Content Include="Libs\gtk-sharp\gtk-sharp-2.0\gtk-sharp.dll" />
-    <Content Include="Libs\gtk-sharp\gtk-sharp-2.0\pango-sharp.dll" />
-    <Content Include="Libs\gtk-sharp\gtk-sharp-2.0\pango-sharp.pdb" />
-    <Content Include="Libs\gtk-sharp\Mono.Cairo\Mono.Cairo.dll" />
-    <Content Include="Libs\gtk-sharp\Mono.Posix\Mono.Posix.dll" />
-    <Content Include="Libs\gtk-sharp\README.txt" />
     <Content Include="Libs\webkit-sharp\webkit-sharp.dll.config" />
     <None Include="webkit-sharp.dll.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
